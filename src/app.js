@@ -184,14 +184,44 @@
     // 修复：原写法 !file.type.indexOf('image/') === 0 因运算符优先级永远是 false，校验形同虚设
     if (file.type.indexOf('image/') !== 0) { showToast('请选择图片文件'); return; }
     state.photoFile = file;
+    state.fromOcr = false;
+    $('ocrBlock').classList.add('hidden');
     const reader = new FileReader();
     reader.onload = function (e) {
       state.photoDataUrl = e.target.result;
       $('photoPreview').src = state.photoDataUrl;
       $('photoPreviewWrap').classList.remove('hidden');
+      // OCR 是可选步骤：组件可用才展示按钮，不可用整块隐藏，主流程不受影响
+      if (typeof MedOCR !== 'undefined' && MedOCR.isAvailable()) {
+        $('ocrStatus').textContent = '';
+        $('ocrBlock').classList.remove('hidden');
+      }
       showToast('照片已就绪，可以手动补填文字');
     };
     reader.readAsDataURL(file);
+  }
+
+  async function runOcrFlow() {
+    if (!state.photoDataUrl) { showToast('请先选择一张照片'); return; }
+    const btn = $('ocrBtn');
+    const status = $('ocrStatus');
+    btn.disabled = true;
+    status.textContent = '正在识别，请稍等十几秒……';
+    try {
+      const res = await MedOCR.recognize(state.photoDataUrl);
+      btn.disabled = false;
+      if (res.ok) {
+        $('textInput').value = res.text;
+        state.lastOcrText = res.text;
+        status.textContent = '识别完成，文字已填到下面。请先自己读一遍，改掉认错的字，再点「提取文字」。';
+        showToast('识别完成，请核对后再提取');
+      } else {
+        status.textContent = res.message;
+      }
+    } catch (e) {
+      btn.disabled = false;
+      status.textContent = '识别失败，请直接粘贴说明书文字。';
+    }
   }
 
   function doExtract() {
@@ -204,6 +234,8 @@
       showToast('照片需要对应文字才能提取；没有 OCR 时请手动粘贴说明书原文');
       return;
     }
+    // AI 提示只在"当前文本确实来自识别"时出现；用户改过字就当自己的原文
+    state.fromOcr = (state.lastOcrText != null && state.lastOcrText === text);
     const rec = MedExtractor.extractLocal(text);
     rec.entry_mode = 'self';
     state.record = rec;
@@ -236,6 +268,13 @@
       banner.innerHTML = '<strong>请确认后再使用</strong>' + r.check_reasons.join('；');
       banner.classList.remove('hidden');
     } else banner.classList.add('hidden');
+
+    // OCR 来源提示：AI 识别可能认错字（尤其数字与规格），必须逐字对照照片核对
+    const ocrNote = $('ocrNote');
+    if (state.fromOcr) {
+      ocrNote.textContent = '这些文字来自 AI 拍照识别。AI 可能认错字（尤其是剂量里的数字和单位），每个字段都请对照照片或药盒核对。';
+      ocrNote.classList.remove('hidden');
+    } else ocrNote.classList.add('hidden');
   }
 
   function syncEdits() {
@@ -566,9 +605,12 @@
     showToast('已恢复内置演示目录');
   });
   $('photoInput').addEventListener('change', function (e) { handlePhoto(e.target.files[0]); });
+  $('ocrBtn') && $('ocrBtn').addEventListener('click', runOcrFlow);
   $('clearPhoto').addEventListener('click', function () {
-    state.photoDataUrl = null; state.photoFile = null;
+    state.photoDataUrl = null; state.photoFile = null; state.lastOcrText = null;
     $('photoPreviewWrap').classList.add('hidden');
+    $('ocrBlock').classList.add('hidden');
+    $('ocrStatus').textContent = '';
     $('photoInput').value = '';
   });
   $('toExtract').addEventListener('click', doExtract);

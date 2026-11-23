@@ -117,6 +117,12 @@
       <button type="button" class="link-btn" id="clearPhoto">移除照片</button>
     </div>
 
+    <div class="ocr-block hidden" id="ocrBlock">
+      <button type="button" class="outline-btn" id="ocrBtn">让 AI 帮我读出照片里的文字</button>
+      <p class="ocr-status" id="ocrStatus" role="status"></p>
+      <p class="ocr-privacy">点上面按钮，会把这张照片发给 AI 文字识别服务，只抄文字、不作任何判断；识别结果还需要您逐字核对。不想上传？直接在下面粘贴文字，效果一样。</p>
+    </div>
+
     <div class="divider"><span>或者</span></div>
 
     <label class="field-label" for="textInput">直接粘贴说明书文字</label>
@@ -137,6 +143,7 @@
     <p class="panel-sub">每个字都来自原文。发现不对可以直接改，改完再生成卡片。</p>
 
     <div id="checkBanner" class="check-banner hidden"></div>
+    <div id="ocrNote" class="verify-box hidden"></div>
     <div id="catalogBanner" class="verify-box hidden"></div>
     <div id="patientNote" class="patient-note hidden"></div>
 
@@ -295,7 +302,7 @@
       <p class="eval-note">69 份含严重警示的说明书，关键词定位召回率 100%；55 份明确次数的说明书，时间示例换算 100% 正确。另 35 份多方案并存、区间写法或时段矛盾的情形，工具没有硬给一个答案，而是提示您自行核对；3 份"必要时服用"的按需药，工具明确告诉您这类药没有固定时间表——<strong>看不准时说"看不准"，比编一个答案更安全</strong>。</p>
       <details class="raw-details compact">
         <summary>测试方法与局限</summary>
-        <p class="safety-note">金标准独立于抽取层：药名取自人工命名，次数用独立读取器，严重警示扫描不良反应与注意事项两段。局限：① 这 102 份是网上公开的说明书文字版，尚未覆盖药盒照片的 OCR 识别；② 区间频次、多适应症不同剂量的说明书，工具会诚实挂"请核对"，不计入准确率；③ 抽取准确不代表用药正确，本工具始终不提供任何用药建议。</p>
+        <p class="safety-note">金标准独立于抽取层：药名取自人工命名，次数用独立读取器，严重警示扫描不良反应与注意事项两段。局限：① 拍照文字识别由 AI 完成，其识别准确率未评测，识别结果会明示"来自 AI，请逐字核对"；② 区间频次、多适应症不同剂量的说明书，工具会诚实挂"请核对"，不计入准确率；③ 抽取准确不代表用药正确，本工具始终不提供任何用药建议。</p>
       </details>
     </section>
 
@@ -373,9 +380,11 @@
 
 <div class="toast hidden" id="toast" role="status"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/@tencent-ai/workbuddy-cloud-sdk@dev/lib/index.global.js"></script>
 <script src="src/rules.js"></script>
 <script src="src/samples.js"></script>
 <script src="src/extractor.js"></script>
+<script src="src/ocr.js"></script>
 <script src="src/patient.js"></script>
 <script src="src/catalog.js"></script>
 <script src="src/inventory.js"></script>

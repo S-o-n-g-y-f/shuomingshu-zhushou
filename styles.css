@@ -614,3 +614,28 @@ textarea:focus, input:focus {
   font-size: 14px;
   line-height: 1.6;
 }
+
+/* AI 拍照识别（可选步骤）：跟照片预览同宽，弱化存在感 */
+.ocr-block {
+  margin: 14px 0 4px;
+  padding: 14px;
+  border: 1px dashed #b9c9c2;
+  border-radius: 12px;
+  background: #f6faf8;
+}
+.ocr-block .outline-btn { width: 100%; }
+.ocr-status {
+  margin: 10px 0 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #2a5c49;
+  min-height: 1em;
+}
+.ocr-privacy {
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 1.7;
+  color: #6b7a74;
+}
+.ocr-block .outline-btn:disabled { opacity: 0.6; }
+
