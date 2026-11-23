@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#0c5f41">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>说明书助手 · 帮您看清药品说明书</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="disclaimer-bar">
+  <span class="disclaimer-icon" aria-hidden="true">!</span>
+  <span>仅帮您看清说明书原文，不提供用药建议，请以纸质说明书和医嘱为准</span>
+</div>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-mark" aria-hidden="true">看</span>
+    <div>
+      <h1>说明书助手</h1>
+      <p>把小字变成大字，把原文读给您听</p>
+    </div>
+  </div>
+  <div class="step-indicator" aria-label="当前步骤">
+    <span class="step active" data-step="1">1 录入</span>
+    <span class="step-line"></span>
+    <span class="step" data-step="2">2 核对</span>
+    <span class="step-line"></span>
+    <span class="step" data-step="3">3 查看</span>
+  </div>
+</header>
+
+<main>
+  <!-- STEP 1 -->
+  <section class="panel" id="panel-1">
+    <h2 class="panel-title">先把药的信息放进来</h2>
+    <p class="panel-sub">谁在用这个应用？选一个入口，步骤会不一样。</p>
+
+    <div class="entry-switch" id="entrySwitch">
+      <button type="button" class="entry-card active" data-entry="family">
+        <span class="entry-icon" aria-hidden="true">家</span>
+        <strong>家人代录</strong>
+        <small>子女照着药盒和医生说的话填写，帮老人录</small>
+      </button>
+      <button type="button" class="entry-card" data-entry="self">
+        <span class="entry-icon" aria-hidden="true">拍</span>
+        <strong>自己拍照</strong>
+        <small>拍下说明书或药盒，照着原文填</small>
+      </button>
+    </div>
+
+    <div id="familyForm">
+      <div class="form-intro">
+        <strong>照着写，不用自己算</strong>
+        <p>药名、规格照药盒抄；「怎么吃」照医生说的原话写。这里只核对文字，不会替您判断怎么用药。</p>
+      </div>
+
+      <div class="edit-grid">
+        <label class="edit-field">
+          <span>药名（照药盒写）</span>
+          <input type="text" id="familyDrug" placeholder="例如：阿莫西林胶囊">
+        </label>
+        <label class="edit-field">
+          <span>规格（照药盒写）</span>
+          <input type="text" id="familySpec" placeholder="例如：0.25g">
+        </label>
+      </div>
+
+      <div id="familyVerify" class="verify-box hidden"></div>
+
+      <label class="edit-field full">
+        <span>医生说的用法（照原话写）</span>
+        <textarea id="familyUsage" rows="3" placeholder="例如：一次一片，一天三次，饭后吃"></textarea>
+        <small>不要在这里自己换算或推断。医生怎么说的就怎么写。</small>
+      </label>
+
+      <label class="edit-field full">
+        <span>服用次数（照原话写，可留空）</span>
+        <input type="text" id="familyFreq" placeholder="例如：每日三次">
+      </label>
+
+      <label class="edit-field full">
+        <span>时间示例（可修改，不是医嘱）</span>
+        <input type="text" id="familyTimes" placeholder="例如：08:00 / 13:00 / 18:00">
+        <small>这里只按常见习惯填几个时间，请自己核对医生的说法。</small>
+      </label>
+
+      <label class="upload-zone compact" for="familyPhotoInput">
+        <span class="upload-icon" aria-hidden="true">+</span>
+        <strong>拍一张药盒照片（可选，留个底）</strong>
+        <small>照片只在本机处理，不会上传</small>
+      </label>
+      <input type="file" id="familyPhotoInput" accept="image/*" hidden>
+      <div class="photo-preview hidden" id="familyPhotoPreviewWrap">
+        <img id="familyPhotoPreview" alt="已选择的药盒照片">
+        <button type="button" class="link-btn" id="familyClearPhoto">移除照片</button>
+      </div>
+
+      <button type="button" class="primary-btn" id="familyToCheck">下一步：核对</button>
+    </div>
+
+    <div id="selfForm" class="hidden">
+      <h3 class="sub-title">自己拍照或粘贴</h3>
+      <p class="form-intro-p">照不清就手动改；没有文字的话，这一步先别往下走。</p>
+
+      <label class="upload-zone" for="photoInput">
+      <span class="upload-icon" aria-hidden="true">+</span>
+      <strong>点这里选择药盒或说明书照片</strong>
+      <small>照片只在本机处理，不会上传到服务器</small>
+    </label>
+    <input type="file" id="photoInput" accept="image/*" hidden>
+
+    <div class="photo-preview hidden" id="photoPreviewWrap">
+      <img id="photoPreview" alt="已选择的药盒照片">
+      <button type="button" class="link-btn" id="clearPhoto">移除照片</button>
+    </div>
+
+    <div class="divider"><span>或者</span></div>
+
+    <label class="field-label" for="textInput">直接粘贴说明书文字</label>
+    <textarea id="textInput" rows="6" placeholder="把说明书上的文字粘贴到这里……"></textarea>
+
+    <div class="sample-block">
+      <p class="field-label">没有说明书？试试演示样张（虚构内容）</p>
+      <div class="sample-buttons" id="sampleButtons"></div>
+    </div>
+
+    <button type="button" class="primary-btn" id="toExtract">下一步：提取文字</button>
+    </div>
+  </section>
+
+  <!-- STEP 2 -->
+  <section class="panel hidden" id="panel-2">
+    <h2 class="panel-title">核对提取结果</h2>
+    <p class="panel-sub">每个字都来自原文。发现不对可以直接改，改完再生成卡片。</p>
+
+    <div id="checkBanner" class="check-banner hidden"></div>
+    <div id="catalogBanner" class="verify-box hidden"></div>
+    <div id="patientNote" class="patient-note hidden"></div>
+
+    <div class="edit-grid">
+      <label class="edit-field">
+        <span>药品名称</span>
+        <input type="text" id="editDrug" aria-label="药品名称">
+        <small id="srcDrug"></small>
+      </label>
+      <label class="edit-field">
+        <span>规格</span>
+        <input type="text" id="editSpec" aria-label="规格">
+        <small id="srcSpec"></small>
+      </label>
+      <label class="edit-field">
+        <span>用量</span>
+        <input type="text" id="editDosage" aria-label="用量">
+        <small id="srcDosage"></small>
+      </label>
+      <label class="edit-field">
+        <span>服用次数（原文）</span>
+        <input type="text" id="editFreq" aria-label="服用次数">
+        <small id="srcFreq"></small>
+      </label>
+    </div>
+
+    <label class="edit-field full">
+      <span>时间示例（可修改）</span>
+      <input type="text" id="editTimes" aria-label="时间示例" placeholder="例如 08:00 / 13:00 / 18:00">
+      <small>这是常见时间示例，不是医嘱。请以纸质说明书和医生的话为准。</small>
+      <p class="timing-hint hidden" id="timingHint"></p>
+    </label>
+
+    <details class="raw-details">
+      <summary>查看提取到的完整原文</summary>
+      <pre id="rawText"></pre>
+    </details>
+
+    <div class="btn-row">
+      <button type="button" class="ghost-btn" id="backTo1">返回</button>
+      <button type="button" class="primary-btn" id="toCard">生成大字卡片</button>
+    </div>
+  </section>
+
+  <!-- STEP 3 -->
+  <section class="panel hidden" id="panel-3">
+    <div class="card-actions">
+      <button type="button" class="ghost-btn" id="backTo2">返回修改</button>
+      <button type="button" class="outline-btn" id="speakBtn">读给我听</button>
+    </div>
+
+    <!-- 身份卡：导出区域 -->
+    <article class="med-card" id="medCard">
+      <div class="card-head">
+        <div class="card-title-block">
+          <p class="card-kicker">说明书助手 · 用药身份卡</p>
+          <h2 id="cardDrug">药品名称</h2>
+          <p class="card-spec" id="cardSpec">规格</p>
+        </div>
+        <img id="cardPhoto" class="card-photo hidden" alt="药盒照片">
+      </div>
+
+      <div id="cardWarn" class="card-warn hidden"></div>
+
+      <section class="card-section">
+        <h3>怎么吃（说明书原文）</h3>
+        <p class="big-text" id="cardDosage">用量</p>
+        <p class="freq-row"><span>服用次数</span><strong id="cardFreq">频次</strong></p>
+        <div class="time-box" id="cardTimesBox">
+          <span class="time-label">常见时间示例</span>
+          <div class="time-chips" id="cardTimes"></div>
+          <p class="timing-hint hidden" id="cardTimingHint"></p>
+        </div>
+      </section>
+
+      <section class="card-section">
+        <h3>要特别注意（原文关键词定位）</h3>
+        <ul class="severe-list" id="cardSevere"></ul>
+        <p class="card-note">严重警示为原文关键词定位，非医学分级。</p>
+      </section>
+
+      <section class="card-section">
+        <h3>可能出现的不适</h3>
+        <p id="cardCommon"></p>
+        <details class="raw-details compact">
+          <summary>查看完整不良反应原文</summary>
+          <pre id="cardAdverseFull"></pre>
+        </details>
+      </section>
+
+      <section class="card-section" id="contraSection">
+        <h3>禁用情况（原文）</h3>
+        <p id="cardContra"></p>
+      </section>
+
+      <footer class="card-foot">
+        <p>请凭药盒和药名确认，不要凭颜色形状认药。</p>
+        <p>仅帮您看清说明书原文，不提供用药建议，请以纸质说明书和医嘱为准。</p>
+      </footer>
+    </article>
+
+    <div class="export-block">
+      <button type="button" class="primary-btn" id="addToList">加入我的用药清单</button>
+      <p class="export-hint" id="addHint">加入后可在「我的用药清单」里看到全部药品和服药时间</p>
+      <button type="button" class="outline-btn wide-btn" id="exportCard">保存这张卡片到手机</button>
+      <p class="export-hint">生成图片后，长按图片选择「保存到相册」。图片只在您的手机里生成，不会上传。</p>
+    </div>
+  </section>
+
+  <!-- 用药清单 -->
+  <section class="panel hidden" id="panel-list">
+    <h2 class="panel-title">我的用药清单</h2>
+    <p class="panel-sub">把每张说明书存进来，这里会按时间排好，并提醒您核对被排在一起的时间。</p>
+
+    <button type="button" class="patient-chip" id="patientChip" aria-label="查看或修改服药人信息"></button>
+
+    <div class="list-actions">
+      <button type="button" class="primary-btn" id="addAnother">+ 再添一种药</button>
+    </div>
+
+    <div id="reviewBox" class="review-box hidden"></div>
+
+    <div id="emptyList" class="empty-state hidden">
+      <p class="empty-icon" aria-hidden="true">□</p>
+      <p>清单还是空的</p>
+      <small>先添加一种药，之后再添就自动汇总</small>
+    </div>
+
+    <div id="listBody" class="hidden"></div>
+
+    <div class="export-block hidden" id="listExportBlock">
+      <button type="button" class="primary-btn" id="exportList">保存整张清单到手机</button>
+      <p class="export-hint">清单图片只在您的手机里生成，不会上传。</p>
+    </div>
+
+    <details class="raw-details">
+      <summary>维护本地核对目录（可选）</summary>
+      <p class="safety-note">内置的是一小份演示样本，不是完整药品库。您可以从国家药监局、国家医保编码库等公开数据整理一份 CSV，格式为：药名,规格,厂家,批准文号。导入只在您的浏览器里保存，不上传。</p>
+      <input type="file" id="catalogFile" accept=".csv,text/csv,text/plain" class="file-input">
+      <p class="safety-note" id="catalogStatus">当前使用内置演示样本。</p>
+      <button type="button" class="ghost-btn small-btn" id="resetCatalog">恢复内置目录</button>
+    </details>
+
+    <section class="eval-card" aria-label="我们的测试记录">
+      <div class="eval-head">
+        <span class="eval-badge">我们测过</span>
+        <span class="eval-date">2026-11-23</span>
+      </div>
+      <p class="eval-lead">用 <strong>102 份真实药品说明书</strong>验证了这款工具的文字提取，结果如下：</p>
+      <div class="eval-grid">
+        <div class="eval-item"><strong>102</strong><span>说明书样张</span></div>
+        <div class="eval-item"><strong>100%</strong><span>药名提取准确</span></div>
+        <div class="eval-item"><strong>100%</strong><span>用量原文可追溯</span></div>
+        <div class="eval-item"><strong>0</strong><span>剂量 / 时间严重错误</span></div>
+      </div>
+      <p class="eval-note">69 份含严重警示的说明书，关键词定位召回率 100%；55 份明确次数的说明书，时间示例换算 100% 正确。另 35 份多方案并存、区间写法或时段矛盾的情形，工具没有硬给一个答案，而是提示您自行核对；3 份"必要时服用"的按需药，工具明确告诉您这类药没有固定时间表——<strong>看不准时说"看不准"，比编一个答案更安全</strong>。</p>
+      <details class="raw-details compact">
+        <summary>测试方法与局限</summary>
+        <p class="safety-note">金标准独立于抽取层：药名取自人工命名，次数用独立读取器，严重警示扫描不良反应与注意事项两段。局限：① 这 102 份是网上公开的说明书文字版，尚未覆盖药盒照片的 OCR 识别；② 区间频次、多适应症不同剂量的说明书，工具会诚实挂"请核对"，不计入准确率；③ 抽取准确不代表用药正确，本工具始终不提供任何用药建议。</p>
+      </details>
+    </section>
+
+    <details class="raw-details">
+      <summary>关于这份清单的重要说明</summary>
+      <p class="safety-note">这份清单只是帮您把说明书上的原文汇总在一起，方便查看时间是否被排到了一起。它不提供用药建议、不判断药物能否同服、不提示药物相互作用。清单里的任何提示都需要您核对纸质说明书，或咨询医生、药师。药名和时间有疑问时，请以药盒和医嘱为准。</p>
+    </details>
+  </section>
+</main>
+
+<!-- 服药人信息引导层（可跳过，每项可不填） -->
+<div class="onboard hidden" id="patientOnboard" role="dialog" aria-modal="true" aria-label="服药人信息">
+  <div class="onboard-card">
+    <h2 class="panel-title">服药人是谁？</h2>
+    <p class="panel-sub">说明书常常给大人、孩子写着不同的用法。告诉我们服药人是谁，工具会从原文里选出对应人群的用法给您看。<strong>每一项都可以不填，也可以整页跳过。</strong></p>
+
+    <label class="edit-field">
+      <span>怎么称呼 <small>（可不填）</small></span>
+      <input type="text" id="ptNickname" maxlength="12" placeholder="例如：老王">
+    </label>
+    <label class="edit-field">
+      <span>性别 <small>（可不填）</small></span>
+      <select id="ptGender">
+        <option value="">不填</option>
+        <option value="男">男</option>
+        <option value="女">女</option>
+      </select>
+    </label>
+    <label class="edit-field">
+      <span>年龄（岁） <small>（可不填）</small></span>
+      <input type="number" id="ptAge" inputmode="numeric" min="0" max="129" placeholder="例如：42">
+    </label>
+    <label class="edit-field">
+      <span>体重（公斤） <small>（可不填，儿童用药常按体重给药）</small></span>
+      <input type="number" id="ptWeight" inputmode="decimal" min="1" max="299" step="0.1" placeholder="例如：30.5">
+    </label>
+
+    <p class="privacy-note">这些信息只保存在这台手机上，不上传、不联网。</p>
+    <p class="form-error hidden" id="patientErr" role="alert"></p>
+    <button type="button" class="primary-btn" id="patientSave">保存</button>
+    <button type="button" class="ghost-btn" id="patientSkip">跳过，直接用</button>
+  </div>
+</div>
+
+<!-- 图片预览弹层 -->
+<div class="modal hidden" id="imageModal" role="dialog" aria-modal="true" aria-label="用药身份卡图片">
+  <div class="modal-inner">
+    <p class="modal-hint">长按下面的图片，选择「保存到相册」</p>
+    <img id="cardImage" alt="生成的用药身份卡图片">
+    <button type="button" class="ghost-btn" id="closeModal">关闭</button>
+  </div>
+</div>
+
+<!-- 外观描述拦截说明弹层 -->
+<div class="modal hidden" id="appearanceModal" role="dialog" aria-modal="true" aria-label="为什么不能填写外观描述">
+  <div class="modal-inner modal-card">
+    <h3 class="modal-title">为什么不能这样填？</h3>
+    <p class="modal-body">为防止相同外观药品混杂导致误食，药物特征暂不支持以外形记录。</p>
+    <p class="modal-body sub">请照药盒上的<strong>药名</strong>和<strong>规格</strong>文字填写；认药时也请以药盒为准，不要凭颜色和形状。</p>
+    <button type="button" class="ghost-btn" id="closeAppearanceModal">我知道了</button>
+  </div>
+</div>
+
+<!-- 底部标签栏（手机原生应用式导航） -->
+<nav class="tabbar" aria-label="主导航">
+  <button type="button" class="nav-btn active" id="navSingle">
+    <span class="tab-icon" aria-hidden="true">📋</span>
+    <span class="tab-label">说明书</span>
+  </button>
+  <button type="button" class="nav-btn" id="navList">
+    <span class="tab-icon" aria-hidden="true">🗓️</span>
+    <span class="tab-label">用药清单 <span class="nav-count" id="navCount">0</span></span>
+  </button>
+</nav>
+
+<div class="toast hidden" id="toast" role="status"></div>
+
+<script src="src/rules.js"></script>
+<script src="src/samples.js"></script>
+<script src="src/extractor.js"></script>
+<script src="src/patient.js"></script>
+<script src="src/catalog.js"></script>
+<script src="src/inventory.js"></script>
+<script src="src/card.js"></script>
+<script src="src/app.js"></script>
+</body>
+</html>
