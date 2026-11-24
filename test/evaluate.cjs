@@ -10,7 +10,9 @@ const path = require('path');
 const E = require('../src/extractor.js');
 const R = require('../src/rules.js');
 
-const SAMPLES = path.join(__dirname, '..', 'samples');
+// 评测语料存放在应用目录之外（../../..../eval-data/samples）：应用目录会被整包发布到公网，
+// 说明书原文按既定决策不入公开站点与仓库。
+const SAMPLES = path.join(__dirname, '..', '..', 'eval-data', 'samples');
 
 /* 独立金标准读取器 —— 与抽取层实现刻意分开 */
 

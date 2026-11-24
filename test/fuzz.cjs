@@ -13,7 +13,8 @@ const fs = require('fs');
 const path = require('path');
 const E = require('../src/extractor.js');
 
-const SAMPLES = path.join(__dirname, '..', 'samples');
+// 样张目录在应用目录之外（见 evaluate.cjs 同款说明），不入公开站点与仓库
+const SAMPLES = path.join(__dirname, '..', '..', 'eval-data', 'samples');
 const FIXTURES = path.join(__dirname, 'fixtures', 'ai-mutants');
 
 /* ---------- 确定性伪随机（可复现） ---------- */
