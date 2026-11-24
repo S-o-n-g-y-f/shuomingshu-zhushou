@@ -179,36 +179,67 @@
     });
   }
 
-  function handlePhoto(file) {
-    if (!file) return;
-    // 修复：原写法 !file.type.indexOf('image/') === 0 因运算符优先级永远是 false，校验形同虚设
-    if (file.type.indexOf('image/') !== 0) { showToast('请选择图片文件'); return; }
-    state.photoFile = file;
-    state.fromOcr = false;
+  function renderPhotoThumbs() {
+    const box = $('photoThumbs');
+    box.innerHTML = '';
+    (state.photoDataUrls || []).forEach(function (url, i) {
+      const img = document.createElement('img');
+      img.src = url;
+      img.alt = '第' + (i + 1) + '张照片';
+      box.appendChild(img);
+    });
+    const n = (state.photoDataUrls || []).length;
+    $('photoThumbsHint').textContent = n > 1 ? '已选 ' + n + ' 张照片' : '';
+  }
+
+  function handlePhoto(fileList) {
+    const files = Array.prototype.slice.call(fileList || []).filter(function (f) {
+      return f && f.type.indexOf('image/') === 0;
+    });
+    if (!files.length) { if (fileList && fileList.length) showToast('请选择图片文件'); return; }
+    if (files.length > (typeof MedOCR !== 'undefined' ? MedOCR.MAX_PHOTOS : 4)) {
+      files.length = (typeof MedOCR !== 'undefined' ? MedOCR.MAX_PHOTOS : 4);
+      showToast('一次最多识别 4 张照片，已取前 4 张');
+    }
+    state.photoFile = files[0];
+    state.photoDataUrls = [];
+    state.lastOcrText = null;
     $('ocrBlock').classList.add('hidden');
-    const reader = new FileReader();
-    reader.onload = function (e) {
-      state.photoDataUrl = e.target.result;
-      $('photoPreview').src = state.photoDataUrl;
-      $('photoPreviewWrap').classList.remove('hidden');
-      // OCR 是可选步骤：组件可用才展示按钮，不可用整块隐藏，主流程不受影响
-      if (typeof MedOCR !== 'undefined' && MedOCR.isAvailable()) {
-        $('ocrStatus').textContent = '';
-        $('ocrBlock').classList.remove('hidden');
-      }
-      showToast('照片已就绪，可以手动补填文字');
-    };
-    reader.readAsDataURL(file);
+    let done = 0;
+    files.forEach(function (file) {
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        state.photoDataUrls.push(e.target.result);
+        done++;
+        if (done === files.length) {
+          state.photoDataUrl = state.photoDataUrls[0]; // 兼容留底照片逻辑
+          renderPhotoThumbs();
+          $('photoPreviewWrap').classList.remove('hidden');
+          // OCR 是可选步骤：组件可用才展示按钮，不可用整块隐藏，主流程不受影响
+          if (typeof MedOCR !== 'undefined' && MedOCR.isAvailable()) {
+            $('ocrStatus').textContent = '';
+            $('ocrBlock').classList.remove('hidden');
+          }
+          showToast(state.photoDataUrls.length > 1
+            ? '已选 ' + state.photoDataUrls.length + ' 张照片，可让 AI 归组拼成一份'
+            : '照片已就绪，可以手动补填文字');
+        }
+      };
+      reader.readAsDataURL(file);
+    });
   }
 
   async function runOcrFlow() {
-    if (!state.photoDataUrl) { showToast('请先选择一张照片'); return; }
+    const urls = state.photoDataUrls || (state.photoDataUrl ? [state.photoDataUrl] : []);
+    if (!urls.length) { showToast('请先选择照片'); return; }
     const btn = $('ocrBtn');
     const status = $('ocrStatus');
     btn.disabled = true;
-    status.textContent = '正在识别，请稍等十几秒……';
+    status.textContent = urls.length > 1
+      ? '正在识别并合并 ' + urls.length + ' 张照片，请稍等……'
+      : '正在识别，请稍等十几秒……';
     try {
-      const res = await MedOCR.recognize(state.photoDataUrl);
+      const res = urls.length > 1 ? await MedOCR.recognizeMany(urls) : await MedOCR.recognize(urls[0]);
       btn.disabled = false;
       if (res.ok) {
         $('textInput').value = res.text;
@@ -604,10 +635,12 @@
     renderCatalogStatus();
     showToast('已恢复内置演示目录');
   });
-  $('photoInput').addEventListener('change', function (e) { handlePhoto(e.target.files[0]); });
+  $('photoInput').addEventListener('change', function (e) { handlePhoto(e.target.files); });
   $('ocrBtn') && $('ocrBtn').addEventListener('click', runOcrFlow);
   $('clearPhoto').addEventListener('click', function () {
     state.photoDataUrl = null; state.photoFile = null; state.lastOcrText = null;
+    state.photoDataUrls = [];
+    renderPhotoThumbs();
     $('photoPreviewWrap').classList.add('hidden');
     $('ocrBlock').classList.add('hidden');
     $('ocrStatus').textContent = '';

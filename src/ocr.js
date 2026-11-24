@@ -17,6 +17,14 @@
 
   const OCR_USER_PROMPT = '请逐字抄录这张照片里的全部文字。';
 
+  // 多张照片：结构指令（归组/排序/合并）不是医疗解读，仍属"把照片变成文字"
+  const OCR_MULTI_USER_PROMPT =
+    '这些照片可能拍的是同一份药品说明书的连续几页。请逐字抄录照片里的文字：' +
+    '如果几张照片属于同一份说明书，按正常阅读顺序合并成一份完整文字，重复出现的内容只保留一份，保持行序；' +
+    '如果某张照片显然不是同一份说明书的，忽略那张照片。只输出抄录的文字。';
+
+  const MAX_PHOTOS = 4;
+
   const DAILY_LIMIT = 30;
   const USAGE_KEY = 'med_ocr_usage_v1';
 
@@ -31,6 +39,16 @@
           { type: 'image_url', image_url: { url: dataUrl } }
         ]
       }
+    ];
+  }
+
+  function buildOcrMultiMessages(dataUrls) {
+    const imgs = (Array.isArray(dataUrls) ? dataUrls : []).slice(0, MAX_PHOTOS);
+    const parts = [{ type: 'text', text: OCR_MULTI_USER_PROMPT }];
+    imgs.forEach(function (u) { parts.push({ type: 'image_url', image_url: { url: u } }); });
+    return [
+      { role: 'system', content: OCR_SYSTEM_PROMPT },
+      { role: 'user', content: parts }
     ];
   }
 
@@ -55,6 +73,7 @@
   // —— 纯函数：错误码 -> 老人能看懂的提示。任何失败都引导回手动粘贴。——
   function ocrErrorMessage(err) {
     const code = (err && err.error && err.error.code) ? String(err.error.code) : '';
+    if (code === 'model_no_vision') return '当前没有可用的文字识别模型，请直接粘贴说明书文字。';
     if (code.indexOf('quota_') === 0) return '今天的识别次数用完了，请明天再试，或直接粘贴说明书文字。';
     if (code.indexOf('auth_') === 0) return '识别服务暂时连不上，请直接粘贴说明书文字。';
     if (code.indexOf('request_') === 0) return '这张照片没法识别（可能太大或格式不对），请重新拍一张，或直接粘贴文字。';
@@ -138,7 +157,31 @@
     });
   }
 
-  // 主入口：dataUrl -> { ok:true, text } | { ok:false, message }
+  // —— 共用内部步骤 ——
+  function ensureVisionModel(c) {
+    if (visionModelId) return Promise.resolve(visionModelId);
+    return c.llm.models.list().then(function (models) {
+      const m = pickVisionModel(models);
+      if (!m) throw { error: { code: 'model_no_vision' } };
+      visionModelId = m.id;
+      return visionModelId;
+    });
+  }
+
+  async function streamText(messages) {
+    let out = '';
+    for await (const chunk of client.llm.chat.completions.create({
+      model: visionModelId,
+      messages: messages,
+      stream: true
+    })) {
+      const delta = chunk && chunk.choices && chunk.choices[0] && chunk.choices[0].delta;
+      if (delta && delta.content) out += delta.content;
+    }
+    return out;
+  }
+
+  // 主入口（单张）：dataUrl -> { ok:true, text } | { ok:false, message }
   async function recognize(dataUrl) {
     const store = (typeof localStorage !== 'undefined') ? localStorage : null;
     const now = new Date();
@@ -150,33 +193,16 @@
     const c = ensureClient();
     if (!c) return { ok: false, message: '识别组件没有加载成功，请直接粘贴说明书文字。' };
 
-    if (!visionModelId) {
-      let models = [];
-      try { models = await c.llm.models.list(); } catch (e) {
-        return { ok: false, message: ocrErrorMessage(e) };
-      }
-      const m = pickVisionModel(models);
-      if (!m) return { ok: false, message: '当前没有可用的文字识别模型，请直接粘贴说明书文字。' };
-      visionModelId = m.id;
-    }
+    try { await ensureVisionModel(c); }
+    catch (e) { return { ok: false, message: ocrErrorMessage(e) }; }
 
     let small;
     try { small = await resizeImageToDataUrl(dataUrl, 1600, 0.85); }
     catch (e) { small = dataUrl; }
 
     let out = '';
-    try {
-      for await (const chunk of c.llm.chat.completions.create({
-        model: visionModelId,
-        messages: buildOcrMessages(small),
-        stream: true
-      })) {
-        const delta = chunk && chunk.choices && chunk.choices[0] && chunk.choices[0].delta;
-        if (delta && delta.content) out += delta.content;
-      }
-    } catch (e) {
-      return { ok: false, message: ocrErrorMessage(e) };
-    }
+    try { out = await streamText(buildOcrMessages(small)); }
+    catch (e) { return { ok: false, message: ocrErrorMessage(e) }; }
 
     const text = cleanOcrText(out);
     if (!text) return { ok: false, message: '没认出文字，请换一张清楚一点的照片，或直接粘贴文字。' };
@@ -185,18 +211,56 @@
     return { ok: true, text: text };
   }
 
+  // 主入口（多张，同一份说明书归组合并）：dataUrls -> { ok, text | message }
+  async function recognizeMany(dataUrls) {
+    const imgs = (Array.isArray(dataUrls) ? dataUrls : []).slice(0, MAX_PHOTOS);
+    if (imgs.length === 0) return { ok: false, message: '请先选择照片。' };
+    if (imgs.length === 1) return recognize(imgs[0]);
+
+    const store = (typeof localStorage !== 'undefined') ? localStorage : null;
+    const now = new Date();
+    if (!quotaInfo(store, now).ok) {
+      return { ok: false, message: '今天的识别次数用完了（每天 ' + DAILY_LIMIT + ' 次），请直接粘贴说明书文字。' };
+    }
+
+    const c = ensureClient();
+    if (!c) return { ok: false, message: '识别组件没有加载成功，请直接粘贴说明书文字。' };
+
+    try { await ensureVisionModel(c); }
+    catch (e) { return { ok: false, message: ocrErrorMessage(e) }; }
+
+    let smalls = [];
+    try {
+      smalls = await Promise.all(imgs.map(function (u) { return resizeImageToDataUrl(u, 1280, 0.85); }));
+    } catch (e) { smalls = imgs; }
+
+    let out = '';
+    try { out = await streamText(buildOcrMultiMessages(smalls)); }
+    catch (e) { return { ok: false, message: ocrErrorMessage(e) }; }
+
+    const text = cleanOcrText(out);
+    if (!text) return { ok: false, message: '没认出文字，请换几张清楚一点的照片，或直接粘贴文字。' };
+
+    bumpQuota(store, now);
+    return { ok: true, text: text, photos: imgs.length };
+  }
+
   const api = {
     OCR_SYSTEM_PROMPT: OCR_SYSTEM_PROMPT,
     OCR_USER_PROMPT: OCR_USER_PROMPT,
+    OCR_MULTI_USER_PROMPT: OCR_MULTI_USER_PROMPT,
+    MAX_PHOTOS: MAX_PHOTOS,
     DAILY_LIMIT: DAILY_LIMIT,
     buildOcrMessages: buildOcrMessages,
+    buildOcrMultiMessages: buildOcrMultiMessages,
     cleanOcrText: cleanOcrText,
     pickVisionModel: pickVisionModel,
     ocrErrorMessage: ocrErrorMessage,
     quotaInfo: quotaInfo,
     bumpQuota: bumpQuota,
     isAvailable: isAvailable,
-    recognize: recognize
+    recognize: recognize,
+    recognizeMany: recognizeMany
   };
 
   if (typeof module === 'object' && module.exports) module.exports = api;

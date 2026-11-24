@@ -639,3 +639,15 @@ textarea:focus, input:focus {
 }
 .ocr-block .outline-btn:disabled { opacity: 0.6; }
 
+/* 多照片缩略图（同一份说明书分页拍） */
+.photo-thumbs { display: flex; flex-wrap: wrap; gap: 8px; }
+.photo-thumbs img {
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid #cfd9d4;
+}
+.photo-thumbs-hint { margin: 6px 0 0; font-size: 13px; color: #4d6a5d; }
+
+

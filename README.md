@@ -32,6 +32,8 @@ node test/rules.test.cjs
 node test/inventory.test.cjs
 node test/catalog.test.cjs
 node test/extractor.test.cjs
+node test/ocr.test.cjs
+node test/fuzz.cjs            # 变异测试场：AI 对抗样本 + 102 份样张 × 8 个确定性脏变异
 node test/evaluate.cjs        # 对 samples/ 全量跑评测，结果写 docs/evaluation.json
 ```
 
@@ -62,7 +64,7 @@ node test/evaluate.cjs        # 对 samples/ 全量跑评测，结果写 docs/ev
 
 ## 拍照 AI 识别（可选步骤）
 
-拍照路径有一个可选的「让 AI 帮我读出照片里的文字」按钮：调用 WorkBuddy 免密钥大模型通道（视觉模型自动从云端模型列表挑选，无需用户配置任何密钥）。设计边界很硬：
+拍照路径有一个可选的「让 AI 帮我读出照片里的文字」按钮：调用 WorkBuddy 免密钥大模型通道（视觉模型自动从云端模型列表挑选，无需用户配置任何密钥）。支持一次选多张照片（最多 4 张）：同一份说明书分页拍的照片由 AI 按阅读顺序归组合并成一份文字，明显不属于同一份的照片自动忽略。设计边界很硬：
 
 - **AI 只做"把照片变成文字"**：系统提示词要求逐字抄录、禁止解释/总结/改写/补充，看不清输出【看不清】占位符，单测断言提示词不含任何医疗字眼；
 - **识别结果不当真值**：填入文本框后照常走核对层，核对页固定出现"来自 AI 拍照识别，AI 可能认错字（尤其是剂量里的数字和单位），请逐字对照核对"；

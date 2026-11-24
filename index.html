@@ -107,14 +107,15 @@
 
       <label class="upload-zone" for="photoInput">
       <span class="upload-icon" aria-hidden="true">+</span>
-      <strong>点这里选择药盒或说明书照片</strong>
+      <strong>点这里拍或选说明书照片（可选多张，字太小分页拍也行）</strong>
       <small>照片只在本机处理，不会上传到服务器</small>
     </label>
-    <input type="file" id="photoInput" accept="image/*" hidden>
+    <input type="file" id="photoInput" accept="image/*" multiple hidden>
 
     <div class="photo-preview hidden" id="photoPreviewWrap">
-      <img id="photoPreview" alt="已选择的药盒照片">
-      <button type="button" class="link-btn" id="clearPhoto">移除照片</button>
+      <div class="photo-thumbs" id="photoThumbs"></div>
+      <p class="photo-thumbs-hint" id="photoThumbsHint"></p>
+      <button type="button" class="link-btn" id="clearPhoto">移除全部照片</button>
     </div>
 
     <div class="ocr-block hidden" id="ocrBlock">

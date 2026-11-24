@@ -116,3 +116,28 @@ t('store 为 null 时安全返回', () => {
 });
 
 console.log('OCR 模块测试完成');
+
+// —— 多照片归组拼接 ——
+t('buildOcrMultiMessages 第一条是 system，图片逐张排列', () => {
+  const m = O.buildOcrMultiMessages(['data:a', 'data:b', 'data:c']);
+  assert.equal(m[0].role, 'system');
+  assert.equal(m[1].role, 'user');
+  const parts = m[1].content;
+  assert.equal(parts[0].type, 'text');
+  assert.equal(parts.filter(function (p) { return p.type === 'image_url'; }).length, 3);
+});
+t('多照片超过上限自动截断', () => {
+  const many = ['data:1', 'data:2', 'data:3', 'data:4', 'data:5', 'data:6'];
+  const parts = O.buildOcrMultiMessages(many)[1].content;
+  assert.equal(parts.filter(function (p) { return p.type === 'image_url'; }).length, O.MAX_PHOTOS);
+});
+t('多照片归组提示词不含医疗判断字眼', () => {
+  for (const w of ['建议', '剂量', '适应', '禁忌', '相互作用', '服用']) {
+    assert.ok(!O.OCR_MULTI_USER_PROMPT.includes(w), '出现医疗字眼: ' + w);
+  }
+});
+t('多照片归组提示词要求合并重复并忽略非同份照片', () => {
+  assert.ok(O.OCR_MULTI_USER_PROMPT.includes('合并'), '缺少合并指令');
+  assert.ok(O.OCR_MULTI_USER_PROMPT.includes('只保留一份'), '缺少去重指令');
+  assert.ok(O.OCR_MULTI_USER_PROMPT.includes('忽略'), '缺少忽略指令');
+});
