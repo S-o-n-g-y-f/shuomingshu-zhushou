@@ -57,11 +57,29 @@ t('普通句子（无人群词）不匹配', () => {
 });
 
 /* ---------- selectRegimen + applyPatient（用真实样张） ---------- */
+// 样张语料不随公开仓库发布（见 README）：先找仓库外 eval-data/samples，再退回仓库内 samples/
+const SAMPLE_DIRS = [
+  path.join(__dirname, '..', '..', 'eval-data', 'samples'),
+  path.join(__dirname, '..', 'samples')
+];
+function loadSample(file) {
+  for (const dir of SAMPLE_DIRS) {
+    const p = path.join(dir, file);
+    if (fs.existsSync(p)) return fs.readFileSync(p, 'utf8').replace(/^<!--[\s\S]*?-->/, '');
+  }
+  return null;
+}
+const hasFixtures = loadSample('利巴韦林片_0.1g.txt') !== null;
+if (!hasFixtures) {
+  console.log('SKIP 6 项样张测试：评测样张不随公开仓库发布。将样张放入仓库旁 eval-data/samples/（或本仓库 samples/）后自动恢复。');
+}
 function usageOf(file) {
-  const t = fs.readFileSync(path.join(__dirname, '..', 'samples', file), 'utf8').replace(/^<!--[\s\S]*?-->/, '');
+  const t = loadSample(file);
+  if (t === null) throw new Error('样张缺失：' + file);
   return E.parseSections(t)['用法用量'] || '';
 }
 
+if (hasFixtures) {
 t('利巴韦林：42岁成人 -> 选出成人段（一日3次），儿童按体重段不入选', () => {
   const sel = P.selectRegimen(usageOf('利巴韦林片_0.1g.txt'), { age: 42 });
   assert.equal(sel.matched, true);
@@ -88,7 +106,8 @@ t('西替利嗪：4岁儿童 -> 2~6岁段', () => {
 });
 
 t('applyPatient：多方案记录按成人选择后黄条解除并带 patientApplied', () => {
-  const t = fs.readFileSync(path.join(__dirname, '..', 'samples', '利巴韦林片_0.1g.txt'), 'utf8').replace(/^<!--[\s\S]*?-->/, '');
+  const t = loadSample('利巴韦林片_0.1g.txt');
+  if (t === null) throw new Error('样张缺失');
   const rec = E.extractLocal(t);
   assert.equal(rec.frequency.multiRegimen, true);
   const applied = P.applyPatient(rec, { age: 42 });
@@ -100,13 +119,15 @@ t('applyPatient：多方案记录按成人选择后黄条解除并带 patientApp
 });
 
 t('applyPatient：不匹配的人群原样返回，黄条不解除', () => {
-  const t = fs.readFileSync(path.join(__dirname, '..', 'samples', '利巴韦林片_0.1g.txt'), 'utf8').replace(/^<!--[\s\S]*?-->/, '');
+  const t = loadSample('利巴韦林片_0.1g.txt');
+  if (t === null) throw new Error('样张缺失');
   const rec = E.extractLocal(t);
   const applied = P.applyPatient(rec, { age: 13 }); // 13岁：成人段(>=18)不匹配，儿童句"小儿"不匹配
   assert.equal(applied.patientApplied, undefined);
   const check = R.needsHumanCheck(applied);
   assert.equal(check.flag, true);
 });
+}
 
 t('applyPatient：单一方案记录不需要选择，原样返回', () => {
   const rec = {
