@@ -382,6 +382,12 @@
 <div class="toast hidden" id="toast" role="status"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@tencent-ai/workbuddy-cloud-sdk@dev/lib/index.global.js"></script>
+<script>
+  // CDN 双源兜底：jsdelivr 在部分网络（尤其国内）不可达，加载失败时自动切 unpkg
+  if (typeof WorkBuddyCloud === 'undefined') {
+    document.write('<script src="https://unpkg.com/@tencent-ai/workbuddy-cloud-sdk@dev/lib/index.global.js"><\/script>');
+  }
+</script>
 <script src="src/rules.js"></script>
 <script src="src/samples.js"></script>
 <script src="src/extractor.js"></script>

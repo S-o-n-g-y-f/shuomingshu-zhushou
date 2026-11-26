@@ -68,6 +68,21 @@ t('pickVisionModel 没有视觉模型返回 null', () => {
   assert.equal(O.pickVisionModel([]), null);
   assert.equal(O.pickVisionModel(null), null);
 });
+t('pickVisionModel 按优先级选实测可用的模型（auto 路由会挂起不吐流）', () => {
+  const m = O.pickVisionModel([
+    { id: 'auto', supportsImages: true },
+    { id: 'balanced-model', supportsImages: true },
+    { id: 'fast-model', supportsImages: true }
+  ]);
+  assert.equal(m.id, 'fast-model');
+});
+t('pickVisionModel 优先级模型都不在时退回第一个可用', () => {
+  const m = O.pickVisionModel([
+    { id: 'auto', supportsImages: true },
+    { id: 'some-vision', supportsImages: true }
+  ]);
+  assert.equal(m.id, 'auto');
+});
 
 // —— 错误提示：全部引导回手动粘贴，不出现技术术语 ——
 t('ocrErrorMessage 按错误码映射且都提到可粘贴', () => {

@@ -61,13 +61,20 @@
   }
 
   // —— 纯函数：从模型列表里挑视觉模型。不猜测：没有明确 supportsImages === true 就是没有。——
+  // 视觉模型优先级：实测 fast-model/balanced-model 流式正常；auto 路由会出现长时间不吐流，
+  // 所以明确按优先级选，都不在时再退回列表第一个支持图片的
+  const VISION_PREF = ['fast-model', 'balanced-model', 'hy4-preview-x'];
   function pickVisionModel(models) {
     const list = Array.isArray(models) ? models : [];
-    for (let i = 0; i < list.length; i++) {
-      const m = list[i];
-      if (m && m.disabled !== true && m.supportsImages === true) return m;
+    const ok = list.filter(function (m) {
+      return m && m.disabled !== true && m.supportsImages === true;
+    });
+    for (let i = 0; i < VISION_PREF.length; i++) {
+      for (let j = 0; j < ok.length; j++) {
+        if (ok[j].id === VISION_PREF[i]) return ok[j];
+      }
     }
-    return null;
+    return ok.length ? ok[0] : null;
   }
 
   // —— 纯函数：错误码 -> 老人能看懂的提示。任何失败都引导回手动粘贴。——
